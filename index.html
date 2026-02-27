@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>交易记录</title>
+    
+    <!-- PWA / iOS App 支持 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="交易记录">
+    <meta name="theme-color" content="#0a0a0a">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 20px;
+            padding-top: max(20px, env(safe-area-inset-top)); /* iPhone刘海屏适配 */
+            padding-bottom: max(20px, env(safe-area-inset-bottom)); /* 底部安全区 */
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #ffffff;
+            font-size: 1.8rem;
+            font-weight: 500;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: #141414;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #2a2a2a;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            color: #999;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #2a2a2a;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .form-group input {
+            padding: 12px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-size: 16px; /* 防止iOS自动缩放 */
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #555;
+        }
+
+        .form-group input::placeholder {
+            color: #555;
+        }
+
+        .form-group input:disabled {
+            background: #1a1a1a;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .hint-text {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .btn {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            min-height: 48px; /* 触摸友好 */
+        }
+
+        .btn-primary {
+            background: #fff;
+            color: #000;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #e0e0e0;
+        }
+
+        .btn-primary:active:not(:disabled) {
+            background: #ccc;
+        }
+
+        .btn-primary:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #333;
+            color: #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #444;
+        }
+
+        .btn-danger {
+            background: #2a1a1a;
+            color: #ff6b6b;
+            border: 1px solid #3a2020;
+        }
+
+        .btn-danger:hover {
+            background: #3a2020;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+        }
+
+        .left-section, .right-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 统计卡片 */
+        .stats-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .stats-main {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .stats-secondary {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+        }
+
+        .stat-card {
+            background: #1a1a1a;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid #252525;
+        }
+
+        .stat-card.main {
+            padding: 18px;
+        }
+
+        .stat-card.main .stat-label {
+            font-size: 0.75rem;
+        }
+
+        .stat-card.main .stat-value {
+            font-size: 1.4rem;
+        }
+
+        .stat-card.secondary {
+            padding: 10px;
+        }
+
+        .stat-card.secondary .stat-label {
+            font-size: 0.65rem;
+            margin-bottom: 4px;
+        }
+
+        .stat-card.secondary .stat-value {
+            font-size: 0.95rem;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: #666;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .stat-value.positive { color: #4caf50; }
+        .stat-value.negative { color: #f44336; }
+
+        /* 图表 */
+        .chart-container {
+            position: relative;
+            height: 350px;
+            background: #0a0a0a;
+            border-radius: 8px;
+        }
+
+        #chartCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .chart-tabs {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chart-tab {
+            padding: 6px 14px;
+            border: 1px solid #333;
+            background: none;
+            color: #666;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        .chart-tab.active {
+            background: #333;
+            color: #fff;
+            border-color: #444;
+        }
+
+        .chart-tooltip {
+            position: absolute;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+            z-index: 100;
+            white-space: nowrap;
+        }
+
+        .chart-tooltip.show {
+            opacity: 1;
+        }
+
+        .chart-tooltip .tt-label {
+            color: #888;
+            font-size: 0.7rem;
+        }
+
+        .chart-tooltip .tt-value {
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        /* 表格 */
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .table-container::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 3px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 500px;
+        }
+
+        th, td {
+            padding: 12px 10px;
+            text-align: center;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        th {
+            background: #1a1a1a;
+            color: #888;
+            position: sticky;
+            top: 0;
+            font-weight: 500;
+            font-size: 0.75rem;
+            z-index: 10;
+        }
+
+        tr {
+            border-bottom: 1px solid #1e1e1e;
+        }
+
+        tr:hover {
+            background: #1a1a1a;
+        }
+
+        .profit { color: #4caf50; }
+        .loss { color: #f44336; }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 8px 12px;
+            border-radius: 4px;
+            min-width: 44px;
+            min-height: 44px;
+        }
+
+        .delete-btn:hover,
+        .delete-btn:active {
+            color: #f44336;
+            background: rgba(244, 67, 54, 0.1);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: #444;
+        }
+
+        .mode-switch {
+            display: flex;
+            background: #0a0a0a;
+            border-radius: 8px;
+            padding: 4px;
+            border: 1px solid #2a2a2a;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 10px 8px;
+            border: none;
+            background: none;
+            color: #666;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            min-height: 44px;
+        }
+
+        .mode-btn.active {
+            background: #333;
+            color: #fff;
+        }
+
+        .current-balance {
+            background: #1a1a1a;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .current-balance span {
+            color: #666;
+            font-size: 0.8rem;
+        }
+
+        .current-balance strong {
+            color: #e0e0e0;
+            font-size: 1.1rem;
+            margin-left: 8px;
+        }
+
+        /* ========== 手机端适配 ========== */
+        @media (max-width: 900px) {
+            body {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                margin-bottom: 20px;
+            }
+
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .card {
+                padding: 16px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-main {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+
+            .stats-secondary {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+
+            .stat-card.main {
+                padding: 12px;
+            }
+
+            .stat-card.main .stat-value {
+                font-size: 1.1rem;
+            }
+
+            .stat-card.main .stat-label {
+                font-size: 0.65rem;
+            }
+
+            .chart-container {
+                height: 280px;
+            }
+
+            .chart-tabs {
+                gap: 5px;
+            }
+
+            .chart-tab {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.3rem;
+                margin-bottom: 15px;
+            }
+
+            .card {
+                padding: 14px;
+                border-radius: 10px;
+            }
+
+            .card-title {
+                font-size: 0.9rem;
+                margin-bottom: 12px;
+                padding-bottom: 10px;
+            }
+
+            .stats-main {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .stat-card.main {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 14px 16px;
+            }
+
+            .stat-card.main .stat-label {
+                margin-bottom: 0;
+                font-size: 0.8rem;
+            }
+
+            .stat-card.main .stat-value {
+                font-size: 1.2rem;
+            }
+
+            .stats-secondary {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+
+            .stat-card.secondary {
+                padding: 12px;
+            }
+
+            .stat-card.secondary .stat-label {
+                font-size: 0.7rem;
+            }
+
+            .stat-card.secondary .stat-value {
+                font-size: 1rem;
+            }
+
+            .chart-container {
+                height: 240px;
+            }
+
+            .chart-tabs {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .input-section {
+                gap: 12px;
+            }
+
+            .form-group input {
+                padding: 14px 12px;
+            }
+
+            .btn {
+                padding: 14px 16px;
+            }
+
+            .current-balance {
+                padding: 14px;
+            }
+
+            .current-balance strong {
+                font-size: 1.2rem;
+            }
+
+            .table-container {
+                max-height: 350px;
+            }
+
+            table {
+                min-width: 450px;
+            }
+
+            th, td {
+                padding: 10px 8px;
+                font-size: 0.8rem;
+            }
+
+            th {
+                font-size: 0.7rem;
+            }
+        }
+
+        /* 超小屏幕 */
+        @media (max-width: 360px) {
+            body {
+                padding: 8px;
+            }
+
+            h1 {
+                font-size: 1.2rem;
+            }
+
+            .card {
+                padding: 12px;
+            }
+
+            .stats-secondary {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .chart-container {
+                height: 200px;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+
+        /* 横屏优化 */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .chart-container {
+                height: 200px;
+            }
+
+            .table-container {
+                max-height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>交易记录</h1>
+        
+        <div class="main-grid">
+            <div class="left-section">
+                <div class="card">
+                    <div class="card-title">初始设置</div>
+                    <div class="input-section">
+                        <div class="form-group">
+                            <label>初始资产</label>
+                            <input type="number" id="initialCapital" value="100000" inputmode="decimal">
+                            <div class="hint-text" id="initialHint"></div>
+                        </div>
+                        <button class="btn btn-primary" id="btnSetInitial" onclick="setInitial()">确认设置</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">添加单笔交易记录</div>
+                    <div class="input-section">
+                        <div class="current-balance">
+                            <span>当前资产:</span>
+                            <strong id="displayBalance">$10,000</strong>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>此笔交易输入方式</label>
+                            <div class="mode-switch">
+                                <button class="mode-btn active" id="btnPnl" onclick="setMode('pnl')">盈亏金额</button>
+                                <button class="mode-btn" id="btnBal" onclick="setMode('balance')">账户余额</button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group" id="groupPnl">
+                            <label>盈亏金额（正数盈利，负数亏损）</label>
+                            <input type="number" id="inputPnl" placeholder="例如: 1500 或 -800" inputmode="decimal">
+                        </div>
+                        
+                        <div class="form-group" id="groupBal" style="display:none;">
+                            <label>交易后账户余额</label>
+                            <input type="number" id="inputBal" placeholder="输入当前账户余额" inputmode="decimal">
+                        </div>
+
+                        <div class="form-group">
+                            <label>备注（可选）</label>
+                            <input type="text" id="inputNote" placeholder="交易备注...">
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="addTrade()">添加记录</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">数据管理</div>
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" onclick="exportCSV()">导出</button>
+                        <button class="btn btn-danger" onclick="clearAll()">清空</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-section">
+                <div class="card">
+                    <div class="card-title">交易数据</div>
+                    <div class="stats-container">
+                        <div class="stats-main">
+                            <div class="stat-card main">
+                                <div class="stat-label">当前资产</div>
+                                <div class="stat-value" id="statCapital">$10,000</div>
+                            </div>
+                            <div class="stat-card main">
+                                <div class="stat-label">总收益率</div>
+                                <div class="stat-value" id="statReturn">0.00%</div>
+                            </div>
+                            <div class="stat-card main">
+                                <div class="stat-label">总盈亏</div>
+                                <div class="stat-value" id="statPnl">$0</div>
+                            </div>
+                        </div>
+                        <div class="stats-secondary">
+                            <div class="stat-card secondary">
+                                <div class="stat-label">最大回撤</div>
+                                <div class="stat-value" id="statDrawdown">0.00%</div>
+                            </div>
+                            <div class="stat-card secondary">
+                                <div class="stat-label">胜率</div>
+                                <div class="stat-value" id="statWinRate">0.00%</div>
+                            </div>
+                            <div class="stat-card secondary">
+                                <div class="stat-label">盈亏比</div>
+                                <div class="stat-value" id="statRatio">-</div>
+                            </div>
+                            <div class="stat-card secondary">
+                                <div class="stat-label">交易次数</div>
+                                <div class="stat-value" id="statCount">0</div>
+                            </div>
+                            <div class="stat-card secondary">
+                                <div class="stat-label">平均盈亏</div>
+                                <div class="stat-value" id="statAvg">$0</div>
+                            </div>
+                            <div class="stat-card secondary">
+                                <div class="stat-label">最大连亏</div>
+                                <div class="stat-value" id="statMaxLoss">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <span>曲线图</span>
+                        <div class="chart-tabs">
+                            <button class="chart-tab active" id="tabEquity" onclick="showChart('equity')">资产曲线</button>
+                            <button class="chart-tab" id="tabReturn" onclick="showChart('return')">收益率曲线</button>
+                        </div>
+                    </div>
+                    <div class="chart-container" id="chartBox">
+                        <canvas id="chartCanvas"></canvas>
+                        <div class="chart-tooltip" id="tooltip">
+                            <div class="tt-label"></div>
+                            <div class="tt-value"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">交易记录</div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>已实现盈亏</th>
+                                    <th>本次收益率</th>
+                                    <th>资产余额</th>
+                                    <th>备注</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                <tr><td colspan="6" class="empty-state">暂无交易记录</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var initial = 100000;
+        var trades = [];
+        var mode = 'pnl';
+        var chartType = 'equity';
+        var initialLocked = false;
+        var chartPoints = [];
+
+        function init() {
+            load();
+            updateInitialUI();
+            render();
+            bindChartEvents();
+        }
+
+        function updateInitialUI() {
+            var input = document.getElementById('initialCapital');
+            var btn = document.getElementById('btnSetInitial');
+            var hint = document.getElementById('initialHint');
+            
+            if (initialLocked) {
+                input.disabled = true;
+                btn.disabled = true;
+                hint.textContent = '点击清空后再次设置初始资产';
+            } else {
+                input.disabled = false;
+                btn.disabled = false;
+                hint.textContent = '';
+            }
+        }
+
+        function setMode(m) {
+            mode = m;
+            document.getElementById('btnPnl').className = m === 'pnl' ? 'mode-btn active' : 'mode-btn';
+            document.getElementById('btnBal').className = m === 'balance' ? 'mode-btn active' : 'mode-btn';
+            document.getElementById('groupPnl').style.display = m === 'pnl' ? 'flex' : 'none';
+            document.getElementById('groupBal').style.display = m === 'balance' ? 'flex' : 'none';
+        }
+
+        function showChart(type) {
+            chartType = type;
+            document.getElementById('tabEquity').className = type === 'equity' ? 'chart-tab active' : 'chart-tab';
+            document.getElementById('tabReturn').className = type === 'return' ? 'chart-tab active' : 'chart-tab';
+            drawChart();
+        }
+
+        function setInitial() {
+            if (initialLocked) return;
+            
+            var val = parseFloat(document.getElementById('initialCapital').value);
+            if (isNaN(val) || val <= 0) {
+                alert('请输入有效的初始资产');
+                return;
+            }
+            initial = val;
+            initialLocked = true;
+            updateInitialUI();
+            save();
+            render();
+        }
+
+        function getBalance() {
+            var bal = initial;
+            for (var i = 0; i < trades.length; i++) {
+                bal += trades[i].pnl;
+            }
+            return bal;
+        }
+
+        function addTrade() {
+            if (!initialLocked) {
+                alert('请先确认设置初始资产');
+                return;
+            }
+            
+            var pnl, currentBal = getBalance();
+            
+            if (mode === 'pnl') {
+                var v = document.getElementById('inputPnl').value;
+                if (v === '' || isNaN(parseFloat(v))) {
+                    alert('请输入有效的盈亏金额');
+                    return;
+                }
+                pnl = parseFloat(v);
+            } else {
+                var v = document.getElementById('inputBal').value;
+                if (v === '' || isNaN(parseFloat(v))) {
+                    alert('请输入有效的账户余额');
+                    return;
+                }
+                pnl = parseFloat(v) - currentBal;
+            }
+
+            trades.push({
+                id: Date.now(),
+                pnl: pnl,
+                note: document.getElementById('inputNote').value.trim(),
+                before: currentBal
+            });
+
+            document.getElementById('inputPnl').value = '';
+            document.getElementById('inputBal').value = '';
+            document.getElementById('inputNote').value = '';
+            
+            // 移动端收起键盘
+            document.activeElement.blur();
+
+            save();
+            render();
+        }
+
+        function deleteTrade(id) {
+            if (!confirm('确定删除此笔交易记录？')) return;
+            var newTrades = [];
+            for (var i = 0; i < trades.length; i++) {
+                if (trades[i].id !== id) newTrades.push(trades[i]);
+            }
+            trades = newTrades;
+            recalc();
+            save();
+            render();
+        }
+
+        function recalc() {
+            var bal = initial;
+            for (var i = 0; i < trades.length; i++) {
+                trades[i].before = bal;
+                bal += trades[i].pnl;
+            }
+        }
+
+        function getStats() {
+            var s = {
+                capital: initial,
+                totalPnl: 0,
+                totalReturn: 0,
+                maxDD: 0,
+                winRate: 0,
+                ratio: 0,
+                count: trades.length,
+                avg: 0,
+                maxConsecLoss: 0,
+                equity: [initial],
+                returns: [0]
+            };
+
+            if (trades.length === 0) return s;
+
+            var bal = initial, peak = initial;
+            var wins = 0, losses = 0, winSum = 0, lossSum = 0;
+            var consec = 0, maxConsec = 0;
+
+            for (var i = 0; i < trades.length; i++) {
+                var t = trades[i];
+                bal += t.pnl;
+                s.equity.push(bal);
+                s.returns.push((bal - initial) / initial * 100);
+
+                if (t.pnl > 0) {
+                    wins++;
+                    winSum += t.pnl;
+                    consec = 0;
+                } else if (t.pnl < 0) {
+                    losses++;
+                    lossSum += Math.abs(t.pnl);
+                    consec++;
+                    if (consec > maxConsec) maxConsec = consec;
+                } else {
+                    consec = 0;
+                }
+
+                if (bal > peak) peak = bal;
+                var dd = peak > 0 ? (peak - bal) / peak : 0;
+                if (dd > s.maxDD) s.maxDD = dd;
+            }
+
+            s.capital = bal;
+            s.totalPnl = bal - initial;
+            s.totalReturn = (s.totalPnl / initial) * 100;
+            s.maxDD = s.maxDD * 100;
+            s.winRate = trades.length > 0 ? (wins / trades.length) * 100 : 0;
+            s.avg = trades.length > 0 ? s.totalPnl / trades.length : 0;
+            s.maxConsecLoss = maxConsec;
+
+            var avgWin = wins > 0 ? winSum / wins : 0;
+            var avgLoss = losses > 0 ? lossSum / losses : 0;
+            s.ratio = avgLoss > 0 ? avgWin / avgLoss : (avgWin > 0 ? Infinity : 0);
+
+            return s;
+        }
+
+        function fmt(v) {
+            var prefix = v >= 0 ? '$' : '-$';
+            return prefix + Math.abs(v).toLocaleString('en-US', {maximumFractionDigits: 0});
+        }
+
+        function render() {
+            var s = getStats();
+
+            document.getElementById('displayBalance').textContent = fmt(s.capital);
+            document.getElementById('statCapital').textContent = fmt(s.capital);
+            
+            var retEl = document.getElementById('statReturn');
+            retEl.textContent = s.totalReturn.toFixed(2) + '%';
+            retEl.className = 'stat-value ' + (s.totalReturn >= 0 ? 'positive' : 'negative');
+
+            var pnlEl = document.getElementById('statPnl');
+            pnlEl.textContent = (s.totalPnl >= 0 ? '+' : '') + fmt(s.totalPnl);
+            pnlEl.className = 'stat-value ' + (s.totalPnl >= 0 ? 'positive' : 'negative');
+
+            var ddEl = document.getElementById('statDrawdown');
+            ddEl.textContent = s.maxDD.toFixed(2) + '%';
+            ddEl.className = 'stat-value' + (s.maxDD > 0 ? ' negative' : '');
+
+            document.getElementById('statWinRate').textContent = s.winRate.toFixed(2) + '%';
+            
+            var ratioEl = document.getElementById('statRatio');
+            ratioEl.textContent = s.ratio === Infinity ? '∞' : (s.ratio === 0 && trades.length === 0 ? '-' : s.ratio.toFixed(2));
+
+            document.getElementById('statCount').textContent = s.count;
+
+            var avgEl = document.getElementById('statAvg');
+            avgEl.textContent = (s.avg >= 0 ? '+' : '') + fmt(s.avg);
+            avgEl.className = 'stat-value ' + (s.avg >= 0 ? 'positive' : 'negative');
+
+            var lossEl = document.getElementById('statMaxLoss');
+            lossEl.textContent = s.maxConsecLoss;
+            lossEl.className = 'stat-value' + (s.maxConsecLoss > 0 ? ' negative' : '');
+
+            drawChart();
+            renderTable();
+        }
+
+        function drawChart() {
+            var canvas = document.getElementById('chartCanvas');
+            var ctx = canvas.getContext('2d');
+            var container = document.getElementById('chartBox');
+            
+            // 高清屏适配
+            var dpr = window.devicePixelRatio || 1;
+            var rect = container.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            canvas.style.width = rect.width + 'px';
+            canvas.style.height = rect.height + 'px';
+            ctx.scale(dpr, dpr);
+
+            var s = getStats();
+            var data = chartType === 'equity' ? s.equity : s.returns;
+            var threshold = chartType === 'equity' ? initial : 0;
+
+            var w = rect.width;
+            var h = rect.height;
+            var pad = {t: 20, r: 15, b: 25, l: w < 400 ? 50 : 65};
+            var cw = w - pad.l - pad.r;
+            var ch = h - pad.t - pad.b;
+
+            ctx.clearRect(0, 0, w, h);
+            chartPoints = [];
+
+            if (data.length < 1) {
+                ctx.fillStyle = '#444';
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('暂无数据', w/2, h/2);
+                return;
+            }
+
+            var minV = Math.min.apply(null, data);
+            var maxV = Math.max.apply(null, data);
+            var range = maxV - minV || 1;
+            var yMin = minV - range * 0.1;
+            var yMax = maxV + range * 0.1;
+
+            // 网格
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 1;
+            var gridLines = w < 400 ? 4 : 5;
+            for (var i = 0; i <= gridLines; i++) {
+                var y = pad.t + (ch / gridLines) * i;
+                ctx.beginPath();
+                ctx.moveTo(pad.l, y);
+                ctx.lineTo(w - pad.r, y);
+                ctx.stroke();
+
+                var val = yMax - ((yMax - yMin) / gridLines) * i;
+                ctx.fillStyle = '#555';
+                ctx.font = (w < 400 ? '10px' : '11px') + ' sans-serif';
+                ctx.textAlign = 'right';
+                var label = chartType === 'equity' ? fmt(val) : val.toFixed(1) + '%';
+                ctx.fillText(label, pad.l - 6, y + 4);
+            }
+
+            // 阈值线
+            if (yMin < threshold && yMax > threshold) {
+                var ty = pad.t + ch * ((yMax - threshold) / (yMax - yMin));
+                ctx.strokeStyle = '#444';
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(pad.l, ty);
+                ctx.lineTo(w - pad.r, ty);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // X轴标签
+            var step = Math.max(1, Math.floor(data.length / (w < 400 ? 5 : 8)));
+            ctx.fillStyle = '#555';
+            ctx.font = (w < 400 ? '10px' : '11px') + ' sans-serif';
+            ctx.textAlign = 'center';
+            for (var i = 0; i < data.length; i += step) {
+                var x = pad.l + (cw / Math.max(data.length - 1, 1)) * i;
+                ctx.fillText(i.toString(), x, h - 8);
+            }
+            if ((data.length - 1) % step !== 0 && data.length > 1) {
+                ctx.fillText((data.length - 1).toString(), w - pad.r, h - 8);
+            }
+
+            // 计算点
+            var pts = [];
+            for (var i = 0; i < data.length; i++) {
+                var x = pad.l + (cw / Math.max(data.length - 1, 1)) * i;
+                var y = pad.t + ch * ((yMax - data[i]) / (yMax - yMin));
+                var val = data[i];
+                pts.push({x: x, y: y, val: val, idx: i});
+                chartPoints.push({x: x, y: y, val: val, idx: i});
+            }
+
+            var lastVal = data[data.length - 1];
+            var color = lastVal >= threshold ? '#4caf50' : '#f44336';
+
+            // 面积
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pad.t + ch);
+            for (var i = 0; i < pts.length; i++) {
+                ctx.lineTo(pts[i].x, pts[i].y);
+            }
+            ctx.lineTo(pts[pts.length-1].x, pad.t + ch);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.globalAlpha = 0.15;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // 线
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (var i = 1; i < pts.length; i++) {
+                ctx.lineTo(pts[i].x, pts[i].y);
+            }
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 点
+            var pointSize = w < 400 ? 3 : 4;
+            for (var i = 0; i < pts.length; i++) {
+                ctx.beginPath();
+                ctx.arc(pts[i].x, pts[i].y, pointSize, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.strokeStyle = '#141414';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        function bindChartEvents() {
+            var canvas = document.getElementById('chartCanvas');
+            var tooltip = document.getElementById('tooltip');
+            var container = document.getElementById('chartBox');
+
+            function showTooltip(clientX, clientY) {
+                var rect = canvas.getBoundingClientRect();
+                var mx = clientX - rect.left;
+                var my = clientY - rect.top;
+
+                var found = null;
+                var minDist = 30;
+
+                for (var i = 0; i < chartPoints.length; i++) {
+                    var p = chartPoints[i];
+                    var dist = Math.sqrt((mx - p.x) * (mx - p.x) + (my - p.y) * (my - p.y));
+                    if (dist < minDist) {
+                        minDist = dist;
+                        found = p;
+                    }
+                }
+
+                if (found) {
+                    var label = chartType === 'equity' ? '资产余额' : '累计收益率';
+                    var value = chartType === 'equity' ? fmt(found.val) : found.val.toFixed(2) + '%';
+                    var valClass = chartType === 'equity' 
+                        ? (found.val >= initial ? 'profit' : 'loss')
+                        : (found.val >= 0 ? 'profit' : 'loss');
+
+                    tooltip.querySelector('.tt-label').textContent = '第 ' + found.idx + ' 笔 · ' + label;
+                    tooltip.querySelector('.tt-value').textContent = value;
+                    tooltip.querySelector('.tt-value').className = 'tt-value ' + valClass;
+                    
+                    var tx = found.x + 15;
+                    var ty = found.y - 45;
+                    if (tx + 100 > container.clientWidth) tx = found.x - 110;
+                    if (ty < 0) ty = found.y + 15;
+
+                    tooltip.style.left = tx + 'px';
+                    tooltip.style.top = ty + 'px';
+                    tooltip.classList.add('show');
+                } else {
+                    tooltip.classList.remove('show');
+                }
+            }
+
+            // 鼠标事件
+            canvas.addEventListener('mousemove', function(e) {
+                showTooltip(e.clientX, e.clientY);
+            });
+            
+            canvas.addEventListener('mouseleave', function() {
+                tooltip.classList.remove('show');
+            });
+
+            // 触摸事件
+            canvas.addEventListener('touchstart', function(e) {
+                if (e.touches.length === 1) {
+                    var touch = e.touches[0];
+                    showTooltip(touch.clientX, touch.clientY);
+                }
+            }, {passive: true});
+
+            canvas.addEventListener('touchmove', function(e) {
+                if (e.touches.length === 1) {
+                    var touch = e.touches[0];
+                    showTooltip(touch.clientX, touch.clientY);
+                }
+            }, {passive: true});
+
+            canvas.addEventListener('touchend', function() {
+                setTimeout(function() {
+                    tooltip.classList.remove('show');
+                }, 1500);
+            });
+        }
+
+        function renderTable() {
+            var tbody = document.getElementById('tableBody');
+            
+            if (trades.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">暂无交易记录</td></tr>';
+                return;
+            }
+
+            var html = '';
+            
+            var balances = [];
+            var bal = initial;
+            for (var i = 0; i < trades.length; i++) {
+                bal += trades[i].pnl;
+                balances.push(bal);
+            }
+
+            for (var i = trades.length - 1; i >= 0; i--) {
+                var t = trades[i];
+                var before = t.before !== undefined ? t.before : (i === 0 ? initial : balances[i - 1]);
+                var after = balances[i];
+                var ret = before > 0 ? (t.pnl / before * 100) : 0;
+                var cls = t.pnl >= 0 ? 'profit' : 'loss';
+                var sign = t.pnl >= 0 ? '+' : '';
+                var rsign = ret >= 0 ? '+' : '';
+
+                html += '<tr>';
+                html += '<td>' + (i + 1) + '</td>';
+                html += '<td class="' + cls + '">' + sign + fmt(t.pnl) + '</td>';
+                html += '<td class="' + cls + '">' + rsign + ret.toFixed(2) + '%</td>';
+                html += '<td>' + fmt(after) + '</td>';
+                html += '<td>' + (t.note || '-') + '</td>';
+                html += '<td><button class="delete-btn" onclick="deleteTrade(' + t.id + ')">×</button></td>';
+                html += '</tr>';
+            }
+
+            tbody.innerHTML = html;
+        }
+
+        function save() {
+            localStorage.setItem('tradeData', JSON.stringify({
+                initial: initial,
+                trades: trades,
+                locked: initialLocked
+            }));
+        }
+
+        function load() {
+            try {
+                var d = localStorage.getItem('tradeData');
+                if (d) {
+                    var obj = JSON.parse(d);
+                    initial = obj.initial || 100000;
+                    trades = obj.trades || [];
+                    initialLocked = obj.locked || false;
+                    document.getElementById('initialCapital').value = initial;
+                    recalc();
+                }
+            } catch(e) {}
+        }
+
+        function exportCSV() {
+            var s = getStats();
+            var csv = '交易记录分析报告\n\n';
+            csv += '初始资产,' + initial + '\n';
+            csv += '当前资产,' + s.capital + '\n';
+            csv += '总收益率,' + s.totalReturn.toFixed(2) + '%\n';
+            csv += '总盈亏,' + s.totalPnl + '\n';
+            csv += '最大回撤,' + s.maxDD.toFixed(2) + '%\n';
+            csv += '胜率,' + s.winRate.toFixed(2) + '%\n';
+            csv += '盈亏比,' + (s.ratio === Infinity ? '无穷大' : s.ratio.toFixed(2)) + '\n';
+            csv += '交易次数,' + s.count + '\n';
+            csv += '最大连续亏损,' + s.maxConsecLoss + '\n\n';
+            csv += '序号,盈亏,本次收益率,余额,备注\n';
+
+            var bal = initial;
+            for (var i = 0; i < trades.length; i++) {
+                var t = trades[i];
+                var before = t.before !== undefined ? t.before : bal;
+                bal = before + t.pnl;
+                var ret = before > 0 ? (t.pnl / before * 100).toFixed(2) : '0.00';
+                csv += (i+1) + ',' + t.pnl + ',' + ret + '%,' + bal + ',' + (t.note || '') + '\n';
+            }
+
+            var blob = new Blob(['\ufeff' + csv], {type: 'text/csv;charset=utf-8;'});
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = '交易记录.csv';
+            link.click();
+        }
+
+        function clearAll() {
+            if (confirm('确定清空所有数据？')) {
+                trades = [];
+                initialLocked = false;
+                updateInitialUI();
+                save();
+                render();
+            }
+        }
+
+        // 监听窗口变化重绘图表
+        var resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                drawChart();
+            }, 100);
+        });
+
+        // 监听屏幕方向变化
+        window.addEventListener('orientationchange', function() {
+            setTimeout(function() {
+                drawChart();
+            }, 300);
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                var id = document.activeElement.id;
+                if (id === 'inputPnl' || id === 'inputBal' || id === 'inputNote') {
+                    addTrade();
+                }
+            }
+        });
+
+        init();
+    </script>
+</body>
+</html>
+
